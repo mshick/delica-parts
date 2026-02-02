@@ -1,0 +1,11 @@
+# Data
+data/
+
+# Environment
+.env
+
+# Worktrees
+.worktrees/
+
+# Node (for TUI)
+node_modules/

@@ -1,0 +1,22 @@
+{
+  "name": "@delica/parts-scraper",
+  "version": "1.0.0",
+  "exports": "./src/main.ts",
+  "tasks": {
+    "bootstrap": "deno run --allow-net --allow-read --allow-write --allow-env scripts/bootstrap.ts",
+    "scrape": "deno run --allow-net --allow-read --allow-write --allow-env --allow-ffi src/main.ts scrape",
+    "status": "deno run --allow-net --allow-read --allow-write --allow-env --allow-ffi src/main.ts status",
+    "retry": "deno run --allow-net --allow-read --allow-write --allow-env --allow-ffi src/main.ts retry",
+    "migrate": "deno run --allow-net --allow-read --allow-write --allow-env --allow-ffi src/main.ts migrate",
+    "query": "deno run --allow-net --allow-read --allow-write --allow-env --allow-ffi src/main.ts query"
+  },
+  "imports": {
+    "@libsql/client": "npm:@libsql/client@^0.14.0",
+    "@std/dotenv": "jsr:@std/dotenv@^0.225.3",
+    "cheerio": "npm:cheerio@^1.0.0"
+  },
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true
+  }
+}
