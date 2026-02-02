@@ -23,6 +23,7 @@ type Model struct {
 	partDetail *PartDetailModel
 	search     *SearchModel
 	bookmarks  *BookmarksModel
+	notes      *NotesModel
 
 	// Terminal size
 	width  int
@@ -85,6 +86,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.search, cmd, nav = m.search.Update(msg)
 	case ScreenBookmarks:
 		m.bookmarks, cmd, nav = m.bookmarks.Update(msg)
+	case ScreenNotes:
+		m.notes, cmd, nav = m.notes.Update(msg)
 	}
 
 	if nav != nil {
@@ -120,6 +123,8 @@ func (m *Model) View() string {
 		content = m.search.View(m.width, m.height)
 	case ScreenBookmarks:
 		content = m.bookmarks.View(m.width, m.height)
+	case ScreenNotes:
+		content = m.notes.View(m.width, m.height)
 	default:
 		content = "Unknown screen"
 	}
@@ -154,6 +159,8 @@ func (m *Model) navigate(to Screen) (*Model, tea.Cmd) {
 		m.search = NewSearchModel(m.db, to.Query)
 	case ScreenBookmarks:
 		m.bookmarks = NewBookmarksModel(m.db)
+	case ScreenNotes:
+		m.notes = NewNotesModel(m.db)
 	}
 
 	// Clear screen on navigation to prevent artifacts
@@ -190,6 +197,8 @@ func (m *Model) goBack() (*Model, tea.Cmd) {
 		m.search = NewSearchModel(m.db, m.screen.Query)
 	case ScreenBookmarks:
 		m.bookmarks = NewBookmarksModel(m.db)
+	case ScreenNotes:
+		m.notes = NewNotesModel(m.db)
 	}
 
 	// Clear screen on navigation to prevent artifacts
