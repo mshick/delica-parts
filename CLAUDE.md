@@ -56,6 +56,7 @@ make clean        # Remove build artifacts and data
 - `Esc` — go back
 - `/` — search (from any screen)
 - `b` — toggle bookmark (on part detail)
+- `n` — add/edit note (on part detail)
 - `q` — quit
 
 ## Database Schema
@@ -65,6 +66,7 @@ make clean        # Remove build artifacts and data
 - **diagrams** → parts diagrams with image URLs and local paths
 - **parts** → individual parts with part_number, PNC, description, specs
 - **bookmarks** → user-saved parts
+- **notes** → user notes attached to parts
 - **scrape_progress** → URL tracking (pending/completed/failed)
 - **parts_fts** → FTS5 virtual table for full-text search
 
