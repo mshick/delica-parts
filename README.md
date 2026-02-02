@@ -1,4 +1,4 @@
-# Delica Parts Scraper
+# Delica Space Gear Parts
 
 A tool for scraping and browsing parts data from the Mitsubishi Delica Space Gear Electronic Parts Catalog (EPC). Includes a web scraper to download parts data and a terminal user interface (TUI) for browsing.
 
