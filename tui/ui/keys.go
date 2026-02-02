@@ -29,3 +29,11 @@ func IsSearch(msg tea.KeyMsg) bool {
 func IsBookmark(msg tea.KeyMsg) bool {
 	return msg.String() == "b"
 }
+
+func IsNote(msg tea.KeyMsg) bool {
+	return msg.String() == "n"
+}
+
+func IsSaveNote(msg tea.KeyMsg) bool {
+	return msg.Type == tea.KeyCtrlS
+}
