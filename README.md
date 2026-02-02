@@ -2,6 +2,16 @@
 
 A tool for scraping and browsing parts data from the Mitsubishi Delica Space Gear Electronic Parts Catalog (EPC). Includes a web scraper to download parts data and a terminal user interface (TUI) for browsing.
 
+## Screenshots
+
+### Initial Screen
+
+[initial menu](./docs/images/initial.png)
+
+### Part Details Screen
+
+[part details](./docs/images/part-details.png)
+
 ## Prerequisites
 
 - [Deno](https://deno.land/) (v1.40+)

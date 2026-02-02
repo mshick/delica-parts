@@ -238,9 +238,11 @@ func (m *PartDetailModel) renderDiagram(height int) string {
 	var lines []string
 
 	if m.img != nil {
-		// Add diagram ID above the image
+		// Add diagram ID above the image, truncated to image width
 		if m.diagram != nil {
-			lines = append(lines, ui.DimStyle.Render(m.diagram.ID))
+			maxWidth := m.img.CellWidth()
+			diagramID := lipgloss.NewStyle().MaxWidth(maxWidth).Render(m.diagram.ID)
+			lines = append(lines, ui.DimStyle.Render(diagramID))
 		}
 		// Image is rendered separately in View(), just add placeholder lines
 		imgHeight := m.img.CellHeight()
