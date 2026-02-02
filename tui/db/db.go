@@ -294,6 +294,75 @@ func (d *DB) GetBookmarkCount() (int, error) {
 	return count, err
 }
 
+func (d *DB) SetNote(partID int, content string) error {
+	return sqlitex.ExecuteTransient(d.conn, `
+		INSERT INTO notes (part_id, content) VALUES (?, ?)
+		ON CONFLICT(part_id) DO UPDATE SET content = ?, updated_at = CURRENT_TIMESTAMP
+	`, &sqlitex.ExecOptions{
+		Args: []any{partID, content, content},
+	})
+}
+
+func (d *DB) RemoveNote(partID int) error {
+	return sqlitex.ExecuteTransient(d.conn, "DELETE FROM notes WHERE part_id = ?", &sqlitex.ExecOptions{
+		Args: []any{partID},
+	})
+}
+
+func (d *DB) GetNote(partID int) (*string, error) {
+	var content *string
+	err := sqlitex.Execute(d.conn, "SELECT content FROM notes WHERE part_id = ?", &sqlitex.ExecOptions{
+		Args: []any{partID},
+		ResultFunc: func(stmt *sqlite.Stmt) error {
+			c := stmt.ColumnText(0)
+			content = &c
+			return nil
+		},
+	})
+	return content, err
+}
+
+func (d *DB) GetNotes() ([]NoteResult, error) {
+	var notes []NoteResult
+	err := sqlitex.Execute(d.conn, `
+		SELECT n.id, n.part_id, n.content, n.updated_at,
+			   p.part_number, p.pnc, p.description,
+			   g.name, s.name
+		FROM notes n
+		JOIN parts p ON n.part_id = p.id
+		JOIN groups g ON p.group_id = g.id
+		LEFT JOIN subgroups s ON p.subgroup_id = s.id
+		ORDER BY n.updated_at DESC
+	`, &sqlitex.ExecOptions{
+		ResultFunc: func(stmt *sqlite.Stmt) error {
+			notes = append(notes, NoteResult{
+				ID:           stmt.ColumnInt(0),
+				PartID:       stmt.ColumnInt(1),
+				Content:      stmt.ColumnText(2),
+				UpdatedAt:    stmt.ColumnText(3),
+				PartNumber:   stmt.ColumnText(4),
+				PNC:          nullableString(stmt, 5),
+				Description:  nullableString(stmt, 6),
+				GroupName:    stmt.ColumnText(7),
+				SubgroupName: nullableString(stmt, 8),
+			})
+			return nil
+		},
+	})
+	return notes, err
+}
+
+func (d *DB) GetNoteCount() (int, error) {
+	var count int
+	err := sqlitex.Execute(d.conn, "SELECT COUNT(*) FROM notes", &sqlitex.ExecOptions{
+		ResultFunc: func(stmt *sqlite.Stmt) error {
+			count = stmt.ColumnInt(0)
+			return nil
+		},
+	})
+	return count, err
+}
+
 // Helper functions
 
 func nullableString(stmt *sqlite.Stmt, col int) *string {
