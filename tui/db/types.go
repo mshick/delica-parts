@@ -61,6 +61,18 @@ type BookmarkResult struct {
 	CreatedAt    string
 }
 
+type NoteResult struct {
+	ID           int
+	PartID       int
+	Content      string
+	PartNumber   string
+	PNC          *string
+	Description  *string
+	GroupName    string
+	SubgroupName *string
+	UpdatedAt    string
+}
+
 type SubgroupWithGroup struct {
 	SubgroupID   string
 	SubgroupName string
