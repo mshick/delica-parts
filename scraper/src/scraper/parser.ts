@@ -89,13 +89,14 @@ export function parseCategoryPage(html: string, baseUrl: string): string[] {
 
     const vehiclePattern = getVehicleUrlPattern();
 
-    // Skip navigation links
+    // Skip navigation links and non-category paths
     if (
       href === "/" ||
       href === "../" ||
       href.startsWith("#") ||
       href.startsWith("javascript:") ||
       href.includes("amayama.com") ||
+      href.includes("/quick/") || // EPC quick search feature, not a parts category
       href.includes("epc-data.com") && !href.includes(vehiclePattern)
     ) {
       return;
@@ -555,13 +556,14 @@ export function extractAllLinks(html: string, baseUrl: string): string[] {
   const addLink = (href: string | undefined) => {
     if (!href) return;
 
-    // Skip non-navigable links
+    // Skip non-navigable links and non-category paths
     if (
       href.startsWith("#") ||
       href.startsWith("javascript:") ||
       href.startsWith("mailto:") ||
       href.includes("amayama.com") ||
-      href.includes("google")
+      href.includes("google") ||
+      href.includes("/quick/") // EPC quick search feature, not a parts category
     ) {
       return;
     }
