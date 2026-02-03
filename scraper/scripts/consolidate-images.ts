@@ -48,7 +48,7 @@ async function main() {
   for (const [baseName, files] of groups) {
     const newFilename = `${baseName}.png`;
     const newPath = `${imagesDir}/${newFilename}`;
-    const dbPath = `./data/images/${newFilename}`;
+    const dbPath = `images/${newFilename}`;
 
     // Keep the first file, rename it to the base name
     const keepFile = files[0];
@@ -82,7 +82,7 @@ async function main() {
 
     // Update database: all diagrams with image_path matching any of these files
     // should now point to the new consolidated path
-    const oldPaths = files.map(f => `./data/images/${f}`);
+    const oldPaths = files.map(f => `images/${f}`);
     const placeholders = oldPaths.map(() => "?").join(", ");
 
     await client.execute({

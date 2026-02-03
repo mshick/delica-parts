@@ -14,21 +14,21 @@ import (
 )
 
 func main() {
-	rootPath := flag.String("root", ".", "Path to project root (contains data/delica.db and data/images/)")
+	dataPath := flag.String("data", "./data", "Path to data directory (contains delica.db and images/)")
 	flag.Parse()
 
 	// Resolve to absolute path
-	absRootPath, err := filepath.Abs(*rootPath)
+	absDataPath, err := filepath.Abs(*dataPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Invalid root path: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Invalid data path: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Load .env file from project root
-	envPath := filepath.Join(absRootPath, ".env")
+	// Load .env file from parent of data directory (project root)
+	envPath := filepath.Join(absDataPath, "..", ".env")
 	_ = godotenv.Load(envPath) // Ignore error if .env doesn't exist
 
-	dbPath := filepath.Join(absRootPath, "data", "delica.db")
+	dbPath := filepath.Join(absDataPath, "delica.db")
 	database, err := db.Open(dbPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to open database: %v\n", err)
@@ -36,7 +36,7 @@ func main() {
 	}
 	defer database.Close()
 
-	m := model.New(database, absRootPath)
+	m := model.New(database, absDataPath)
 	p := tea.NewProgram(m, tea.WithAltScreen())
 
 	if _, err := p.Run(); err != nil {

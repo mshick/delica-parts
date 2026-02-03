@@ -30,7 +30,7 @@ status:
 	cd scraper && deno task status
 
 tui: build
-	./tui/delica-tui -root .
+	./tui/delica-tui -data ./data
 
 build:
 	cd tui && go build -o delica-tui .

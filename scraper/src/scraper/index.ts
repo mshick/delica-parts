@@ -409,7 +409,9 @@ export class Scraper {
       // Clean up the diagram ID for filename
       const safeId = diagram.id.replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 100);
       const filename = `${safeId}.${this.getExtension(diagram.image_url)}`;
-      const imagePath = `${this.config.imagesDir}/${filename}`;
+      const filePath = `${this.config.imagesDir}/${filename}`;
+      // Store path relative to data directory in database
+      const dbPath = `images/${filename}`;
 
       console.log(`  Downloading: ${filename}`);
 
@@ -417,8 +419,8 @@ export class Scraper {
 
       if (result.ok && result.data) {
         try {
-          await Deno.writeFile(imagePath, result.data);
-          await updateDiagramImagePath(this.client, diagram.id, imagePath);
+          await Deno.writeFile(filePath, result.data);
+          await updateDiagramImagePath(this.client, diagram.id, dbPath);
           downloaded++;
         } catch (error) {
           console.error(`    Failed to save: ${error}`);
