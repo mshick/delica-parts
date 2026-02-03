@@ -9,6 +9,7 @@
 
 import { getClient, closeClient } from "../src/db/client.ts";
 import { DEFAULT_CONFIG } from "../src/types.ts";
+import { RateLimitedFetcher } from "../src/scraper/fetcher.ts";
 import * as cheerio from "cheerio";
 
 interface DiagramMapping {
@@ -17,21 +18,15 @@ interface DiagramMapping {
   detailPageIds: string[];
 }
 
-async function fetchPage(url: string, retries = 3): Promise<string> {
-  for (let attempt = 0; attempt < retries; attempt++) {
-    const response = await fetch(url);
-    if (response.ok) {
-      return response.text();
-    }
-    if (response.status === 429) {
-      const delay = Math.pow(2, attempt + 1) * 5000; // 10s, 20s, 40s
-      console.log(`    Rate limited, waiting ${delay/1000}s...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-      continue;
-    }
-    throw new Error(`Failed to fetch ${url}: ${response.status}`);
+// Use the same rate-limited fetcher as the main scraper
+const fetcher = new RateLimitedFetcher(DEFAULT_CONFIG);
+
+async function fetchPage(url: string): Promise<string> {
+  const result = await fetcher.fetch(url);
+  if (!result.ok || !result.html) {
+    throw new Error(`Failed to fetch ${url}: ${result.error || result.status}`);
   }
-  throw new Error(`Failed to fetch ${url} after ${retries} retries`);
+  return result.html;
 }
 
 function parseDetailListSections(html: string): DiagramMapping[] {
@@ -207,8 +202,7 @@ async function main() {
         }
       }
 
-      // Rate limit - wait 5 seconds between pages
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      // The RateLimitedFetcher handles delays between requests
 
     } catch (error) {
       console.log(`  ERROR: ${error}`);
