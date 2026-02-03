@@ -118,3 +118,5 @@ Full-text search is available via the `parts_fts` virtual table.
 ## License
 
 MIT
+
+.
