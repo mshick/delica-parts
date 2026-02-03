@@ -6,6 +6,7 @@ import type {
   Part,
   ScrapeProgress,
 } from "../types.ts";
+import { generateSearchTerms } from "./search-terms.ts";
 
 // Group operations
 export async function insertGroup(
@@ -119,9 +120,10 @@ export async function getDiagramsWithoutImages(
 
 // Part operations
 export async function insertPart(client: Client, part: Part): Promise<void> {
+  const searchTerms = generateSearchTerms(part.description, part.part_number);
   await client.execute({
-    sql: `INSERT OR IGNORE INTO parts (detail_page_id, part_number, pnc, description, ref_number, quantity, spec, notes, color, model_date_range, diagram_id, group_id, subgroup_id, replacement_part_number)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    sql: `INSERT OR IGNORE INTO parts (detail_page_id, part_number, pnc, description, ref_number, quantity, spec, notes, color, model_date_range, diagram_id, group_id, subgroup_id, replacement_part_number, search_terms)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     args: [
       part.detail_page_id,
       part.part_number,
@@ -137,6 +139,7 @@ export async function insertPart(client: Client, part: Part): Promise<void> {
       part.group_id,
       part.subgroup_id ?? null,
       part.replacement_part_number ?? null,
+      searchTerms,
     ],
   });
 }
@@ -147,26 +150,30 @@ export async function insertParts(
 ): Promise<void> {
   if (parts.length === 0) return;
 
-  const batch = parts.map((part) => ({
-    sql: `INSERT OR IGNORE INTO parts (detail_page_id, part_number, pnc, description, ref_number, quantity, spec, notes, color, model_date_range, diagram_id, group_id, subgroup_id, replacement_part_number)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    args: [
-      part.detail_page_id,
-      part.part_number,
-      part.pnc,
-      part.description,
-      part.ref_number,
-      part.quantity,
-      part.spec,
-      part.notes,
-      part.color,
-      part.model_date_range,
-      part.diagram_id,
-      part.group_id,
-      part.subgroup_id ?? null,
-      part.replacement_part_number ?? null,
-    ],
-  }));
+  const batch = parts.map((part) => {
+    const searchTerms = generateSearchTerms(part.description, part.part_number);
+    return {
+      sql: `INSERT OR IGNORE INTO parts (detail_page_id, part_number, pnc, description, ref_number, quantity, spec, notes, color, model_date_range, diagram_id, group_id, subgroup_id, replacement_part_number, search_terms)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [
+        part.detail_page_id,
+        part.part_number,
+        part.pnc,
+        part.description,
+        part.ref_number,
+        part.quantity,
+        part.spec,
+        part.notes,
+        part.color,
+        part.model_date_range,
+        part.diagram_id,
+        part.group_id,
+        part.subgroup_id ?? null,
+        part.replacement_part_number ?? null,
+        searchTerms,
+      ],
+    };
+  });
 
   await client.batch(batch);
 }

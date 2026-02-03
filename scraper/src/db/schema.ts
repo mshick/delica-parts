@@ -1,4 +1,5 @@
 import type { Client } from "@libsql/client";
+import { generateSearchTerms } from "./search-terms.ts";
 
 export async function createSchema(client: Client): Promise<void> {
   // Groups table (top-level categories)
@@ -103,35 +104,35 @@ export async function createSchema(client: Client): Promise<void> {
     )
   `);
 
-  // Full-text search index
+  // Full-text search index (includes expanded search_terms for synonyms/abbreviations)
   await client.execute(`
     CREATE VIRTUAL TABLE IF NOT EXISTS parts_fts USING fts5(
-      part_number, description,
+      part_number, description, search_terms,
       content='parts', content_rowid='id'
     )
   `);
 
-  // Triggers to keep FTS in sync
+  // Triggers to keep FTS in sync (includes search_terms)
   await client.execute(`
     CREATE TRIGGER IF NOT EXISTS parts_ai AFTER INSERT ON parts BEGIN
-      INSERT INTO parts_fts(rowid, part_number, description)
-      VALUES (new.id, new.part_number, new.description);
+      INSERT INTO parts_fts(rowid, part_number, description, search_terms)
+      VALUES (new.id, new.part_number, new.description, new.search_terms);
     END
   `);
 
   await client.execute(`
     CREATE TRIGGER IF NOT EXISTS parts_ad AFTER DELETE ON parts BEGIN
-      INSERT INTO parts_fts(parts_fts, rowid, part_number, description)
-      VALUES ('delete', old.id, old.part_number, old.description);
+      INSERT INTO parts_fts(parts_fts, rowid, part_number, description, search_terms)
+      VALUES ('delete', old.id, old.part_number, old.description, old.search_terms);
     END
   `);
 
   await client.execute(`
     CREATE TRIGGER IF NOT EXISTS parts_au AFTER UPDATE ON parts BEGIN
-      INSERT INTO parts_fts(parts_fts, rowid, part_number, description)
-      VALUES ('delete', old.id, old.part_number, old.description);
-      INSERT INTO parts_fts(rowid, part_number, description)
-      VALUES (new.id, new.part_number, new.description);
+      INSERT INTO parts_fts(parts_fts, rowid, part_number, description, search_terms)
+      VALUES ('delete', old.id, old.part_number, old.description, old.search_terms);
+      INSERT INTO parts_fts(rowid, part_number, description, search_terms)
+      VALUES (new.id, new.part_number, new.description, new.search_terms);
     END
   `);
 
@@ -212,6 +213,7 @@ export async function runMigrations(client: Client): Promise<void> {
     { name: "group_id", type: "TEXT REFERENCES groups(id)" },
     { name: "subgroup_id", type: "TEXT REFERENCES subgroups(id)" },
     { name: "replacement_part_number", type: "TEXT" },
+    { name: "search_terms", type: "TEXT" },
   ];
 
   for (const col of newPartsColumns) {
@@ -304,6 +306,8 @@ export async function runMigrations(client: Client): Promise<void> {
   // Migrate from categories to groups/subgroups
   await migrateCategoriestoGroupsSubgroups(client);
 
+  // Migrate to enhanced search terms
+  await migrateToEnhancedSearchTerms(client, partsColumns);
 }
 
 /**
@@ -425,6 +429,117 @@ async function populatePartsGroupIds(client: Client): Promise<void> {
     SELECT COUNT(*) as count FROM parts WHERE group_id IS NOT NULL
   `);
   console.log(`  Updated ${updatedResult.rows[0].count} parts with group_id/subgroup_id`);
+}
+
+/**
+ * Migrate to enhanced search terms.
+ * Adds search_terms column, populates it with expanded terms,
+ * and rebuilds FTS index to include the new column.
+ */
+async function migrateToEnhancedSearchTerms(
+  client: Client,
+  partsColumns: Set<string>
+): Promise<void> {
+  // Check if search_terms column was just added (needs population)
+  // or if FTS index needs rebuilding
+  const needsPopulation = !partsColumns.has("search_terms");
+
+  if (!needsPopulation) {
+    // Check if any rows have NULL search_terms
+    const nullCount = await client.execute(`
+      SELECT COUNT(*) as count FROM parts WHERE search_terms IS NULL
+    `);
+    if ((nullCount.rows[0].count as number) === 0) {
+      return; // All done
+    }
+  }
+
+  console.log("  Migrating to enhanced search terms...");
+
+  // Fetch all parts that need search terms populated
+  const parts = await client.execute(`
+    SELECT id, part_number, description FROM parts WHERE search_terms IS NULL
+  `);
+
+  if (parts.rows.length > 0) {
+    console.log(`    Generating search terms for ${parts.rows.length} parts...`);
+
+    // Update in batches
+    const batchSize = 500;
+    for (let i = 0; i < parts.rows.length; i += batchSize) {
+      const batch = parts.rows.slice(i, i + batchSize);
+      const updates = batch.map((row) => {
+        const searchTerms = generateSearchTerms(
+          row.description as string | null,
+          row.part_number as string | null
+        );
+        return {
+          sql: `UPDATE parts SET search_terms = ? WHERE id = ?`,
+          args: [searchTerms, row.id as number],
+        };
+      });
+      await client.batch(updates);
+
+      if (parts.rows.length > batchSize) {
+        console.log(`      Processed ${Math.min(i + batchSize, parts.rows.length)}/${parts.rows.length}`);
+      }
+    }
+  }
+
+  // Check if FTS table has search_terms column
+  const ftsResult = await client.execute(`PRAGMA table_info(parts_fts)`);
+  const ftsColumns = new Set(ftsResult.rows.map((row) => row.name as string));
+
+  if (!ftsColumns.has("search_terms")) {
+    console.log("    Rebuilding FTS index with search_terms...");
+
+    // Drop old triggers and FTS table
+    await client.execute(`DROP TRIGGER IF EXISTS parts_ai`);
+    await client.execute(`DROP TRIGGER IF EXISTS parts_ad`);
+    await client.execute(`DROP TRIGGER IF EXISTS parts_au`);
+    await client.execute(`DROP TABLE IF EXISTS parts_fts`);
+
+    // Create new FTS table with search_terms
+    await client.execute(`
+      CREATE VIRTUAL TABLE parts_fts USING fts5(
+        part_number, description, search_terms,
+        content='parts', content_rowid='id'
+      )
+    `);
+
+    // Recreate triggers with search_terms
+    await client.execute(`
+      CREATE TRIGGER parts_ai AFTER INSERT ON parts BEGIN
+        INSERT INTO parts_fts(rowid, part_number, description, search_terms)
+        VALUES (new.id, new.part_number, new.description, new.search_terms);
+      END
+    `);
+
+    await client.execute(`
+      CREATE TRIGGER parts_ad AFTER DELETE ON parts BEGIN
+        INSERT INTO parts_fts(parts_fts, rowid, part_number, description, search_terms)
+        VALUES ('delete', old.id, old.part_number, old.description, old.search_terms);
+      END
+    `);
+
+    await client.execute(`
+      CREATE TRIGGER parts_au AFTER UPDATE ON parts BEGIN
+        INSERT INTO parts_fts(parts_fts, rowid, part_number, description, search_terms)
+        VALUES ('delete', old.id, old.part_number, old.description, old.search_terms);
+        INSERT INTO parts_fts(rowid, part_number, description, search_terms)
+        VALUES (new.id, new.part_number, new.description, new.search_terms);
+      END
+    `);
+
+    // Repopulate FTS index
+    console.log("    Repopulating FTS index...");
+    await client.execute(`
+      INSERT INTO parts_fts(rowid, part_number, description, search_terms)
+      SELECT id, part_number, description, search_terms FROM parts
+    `);
+  }
+
+  console.log("  Enhanced search terms migration complete!");
 }
 
 /**
