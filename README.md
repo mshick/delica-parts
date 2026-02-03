@@ -52,7 +52,7 @@ Vehicle configuration is stored in `.env`:
 
 ```
 FRAME_NO=PD6W-0500900
-VEHICLE_NAME=Delica Space Gear - HSEUE9 Chamonix (HIGH-ROOF), 4CA/T complectation
+VEHICLE_NAME=HSEUE9 Chamonix (HIGH-ROOF), 4CA/T complectation
 FRAME_NAME=pd6w
 TRIM_CODE=hseue9
 EXTERIOR_CODE=W09M
