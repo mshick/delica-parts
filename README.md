@@ -51,13 +51,13 @@ A tool for scraping and browsing parts data from the Mitsubishi Delica Electroni
 Vehicle configuration is stored in `.env`:
 
 ```
-FRAME_NO=PD6W-0500900
-VEHICLE_NAME=Delica Space Gear - HSEUE9 Chamonix (HIGH-ROOF), 4CA/T complectation
-FRAME_NAME=pd6w
-TRIM_CODE=hseue9
-EXTERIOR_CODE=W09M
-INTERIOR_CODE=57A
-MANUFACTURE_DATE=1999.07.3
+FRAME_NO='PD6W-0500900'
+VEHICLE_NAME='HSEUE9 Chamonix (HIGH-ROOF), 4CA/T complectation'
+FRAME_NAME='pd6w'
+TRIM_CODE='hseue9'
+EXTERIOR_CODE='W09M'
+INTERIOR_CODE='57A'
+MANUFACTURE_DATE='1999.07.3'
 ```
 
 Run `./scripts/bootstrap` to set up this file. It will prompt for your frame number if not already configured.
